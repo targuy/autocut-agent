@@ -50,6 +50,20 @@ Generic pipelines (not bound to a specific input) are stored as **templates** th
 - **Edited** via GUI or API before execution
 - **Versioned** so changes to a template don't affect running instances
 
+### Program Registry and Adaptive Scoring
+
+The system maintains a **persistent knowledge base** about programs used in pipelines:
+
+- **ProgramRegistry** (`pipeline/registry.py`): Each program stores its description, purpose, command type, command template, required inputs, expected outputs, and typed parameters (with validation constraints like min/max/allowed values). Programs are cached in memory for fast lookup and persisted to DB.
+- **Registry-aware compilation**: The LLM compiler automatically injects known program context into its prompt. When it encounters an unknown program, it returns questions the user must answer to register it.
+- **ExecutionScoring** (`pipeline/scoring.py`): Every execution outcome (success, failure, zero-output, timeout) is recorded per program and per parameter combination. Statistics are computed with per-parameter-set breakdowns.
+- **AdvisoryEngine**: Analyzes scoring history to detect patterns and recommend changes:
+  - Zero-output runs → filter parameters likely too restrictive (warning/critical)
+  - High failure rates → misconfiguration or missing dependencies
+  - Frequent timeouts → increase timeout or optimize program
+  - Better parameter sets → suggest switching to higher success-rate configurations
+- **API** (`/api/v1/programs`): CRUD for programs, parameter updates with validation, stats, per-parameter-set breakdowns, and advisory endpoints.
+
 ### Resumability and Step Skipping
 
 Pipelines support **interruption and resumption**:
@@ -90,7 +104,9 @@ autocut-agent/
 │   │   ├── compiler.py           # LLM-powered natural language → Pipeline compilation
 │   │   ├── engine.py             # PipelineEngine - DAG execution, fan-out/fan-in
 │   │   ├── templates.py          # PipelineTemplate storage, cloning, versioning
-│   │   └── conditions.py         # Conditional branch evaluation
+│   │   ├── conditions.py         # Conditional branch evaluation
+│   │   ├── registry.py           # ProgramRegistry - persistent program knowledge base
+│   │   └── scoring.py            # Execution scoring, stats, and advisory engine
 │   ├── triggers/                 # Trigger systems
 │   │   ├── scheduler.py          # APScheduler cron/interval triggers
 │   │   ├── watcher.py            # Watchdog file system monitoring
@@ -118,9 +134,10 @@ autocut-agent/
 │   │   └── routes/               # API endpoint modules
 │   │       ├── pipelines.py      # /api/v1/pipelines endpoints
 │   │       ├── templates.py      # /api/v1/templates endpoints
+│   │       ├── programs.py       # /api/v1/programs endpoints (registry, scoring, advisories)
 │   │       ├── queues.py         # /api/v1/queues endpoints
 │   │       ├── tasks.py          # /api/v1/tasks endpoints
-│   │       └── status.py         # /api/v1/status, /health, /metrics
+│   │       └── status.py        # /api/v1/status, /health, /metrics
 │   ├── gui/                      # Web frontend (React)
 │   └── cli.py                    # Command-line interface entry point
 ├── tests/                        # Test suite (pytest)
@@ -321,6 +338,19 @@ FastAPI application at `/api/v1/`:
 | PUT | `/templates/{id}` | Update template |
 | DELETE | `/templates/{id}` | Delete template |
 
+**Programs (Registry & Scoring):**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/programs` | Register a new program |
+| GET | `/programs` | List registered programs |
+| GET | `/programs/{name}` | Program details |
+| PUT | `/programs/{name}/parameters` | Update parameter values |
+| DELETE | `/programs/{name}` | Deactivate program |
+| GET | `/programs/{name}/stats` | Execution statistics |
+| GET | `/programs/{name}/advisories` | Parameter recommendations |
+| GET | `/programs/{name}/param-sets` | Per-parameter-set stats |
+| GET | `/advisories` | All advisories across programs |
+
 **Queues:**
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -398,7 +428,7 @@ React-based administration interface (not optional — required for pipeline man
 
 ## Database Schema
 
-Seven core tables (SQLite or PostgreSQL via SQLAlchemy 2.0):
+Nine core tables (SQLite or PostgreSQL via SQLAlchemy 2.0):
 
 - **pipeline_templates** - `id` (UUID PK), `name`, `description`, `steps_definition` (JSON), `version`, `created_by`, `created_at`, `updated_at`.
 - **pipelines** - `id` (UUID PK), `template_id` (FK->pipeline_templates, nullable), `name`, `status`, `inputs` (JSON), `context` (JSON), `created_at`, `resumed_at`. Indexed on `status`.
@@ -407,6 +437,8 @@ Seven core tables (SQLite or PostgreSQL via SQLAlchemy 2.0):
 - **artifacts** - `id` (UUID PK), `pipeline_id` (FK->pipelines), `step_id` (FK->pipeline_steps), `execution_id` (FK->step_executions, nullable), `key`, `value` (JSON), `file_path` (nullable), `created_at`. Indexed on `(pipeline_id, step_id, key)`.
 - **queues** - `name` (PK), `type`, `workers`, `priority`, `status`, `config` (JSON).
 - **execution_logs** - `id` (auto PK), `pipeline_id` (FK, nullable), `step_id` (FK, nullable), `task_id`, `timestamp`, `level`, `message`, `context` (JSON). Indexed on `(pipeline_id, timestamp)` and `(step_id, timestamp)`.
+- **program_registry** - `id` (UUID PK), `name` (unique), `description`, `purpose`, `command_type`, `command_template`, `required_inputs` (JSON), `expected_outputs` (JSON), `parameters` (JSON), `registered_by`, `tags` (JSON), `version`, `active` (bool), `created_at`, `updated_at`. Indexed on `name`.
+- **program_scores** - `id` (UUID PK), `program_name`, `pipeline_id` (nullable), `step_id` (nullable), `outcome`, `parameters_used` (JSON), `parameters_hash`, `duration_seconds`, `output_size`, `error_message`, `recorded_at`. Indexed on `(program_name)`, `(program_name, parameters_hash)`, `(program_name, outcome)`.
 
 ## Configuration
 
