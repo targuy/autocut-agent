@@ -1,0 +1,51 @@
+# AutoCut-Agent Development Configuration
+
+agent:
+  name: "AutoCut Agent (Dev)"
+  workers: 2
+  log_level: DEBUG
+
+database:
+  url: "sqlite+aiosqlite:///agent_dev.db"
+  pool_size: 3
+
+redis:
+  url: "redis://localhost:6379/0"
+  enabled: false
+
+resources:
+  - id: "cpu"
+    type: "cpu"
+    exclusive: false
+    max_concurrent: 4
+
+queues:
+  - name: "default"
+    type: "priority"
+    workers: 1
+    priority: 0
+
+triggers:
+  - type: "api"
+    enabled: true
+
+monitoring:
+  metrics:
+    enabled: false
+    prometheus_port: 9090
+  logging:
+    format: "text"
+    level: "DEBUG"
+    file: "logs/agent_dev.log"
+
+api:
+  host: "127.0.0.1"
+  port: 8080
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+
+llm:
+  provider: "openai"
+  model: "gpt-4"
+  temperature: 0.3

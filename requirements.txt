@@ -1,0 +1,23 @@
+# AutoCut-Agent dependencies (pip fallback)
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+sqlalchemy[asyncio]>=2.0.0
+aiosqlite>=0.20.0
+asyncpg>=0.30.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+pyyaml>=6.0
+langchain>=0.3.0
+langchain-openai>=0.3.0
+langchain-anthropic>=0.3.0
+apscheduler>=3.10.0
+watchdog>=6.0.0
+structlog>=24.0.0
+redis>=5.0.0
+prometheus-client>=0.21.0
+httpx>=0.28.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.0
+python-multipart>=0.0.18
+click>=8.1.0
+rich>=13.0.0
