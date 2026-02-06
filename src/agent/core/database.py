@@ -166,6 +166,54 @@ class ExecutionLogRow(Base):
     )
 
 
+class ProgramRegistryRow(Base):
+    """Persistent knowledge base entry for a program used in pipelines."""
+
+    __tablename__ = "program_registry"
+
+    id = Column(String(36), primary_key=True, default=_uuid_str)
+    name = Column(String(255), nullable=False, unique=True)
+    description = Column(Text, default="")
+    purpose = Column(Text, default="")
+    command_type = Column(String(20), nullable=False, default="shell")
+    command_template = Column(Text, default="")
+    required_inputs = Column(JSON, default=list)
+    expected_outputs = Column(JSON, default=list)
+    parameters = Column(JSON, default=list)
+    registered_by = Column(String(50), default="manual")
+    tags = Column(JSON, default=list)
+    version = Column(String(50), default="1.0")
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=_utcnow)
+    updated_at = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+
+    __table_args__ = (Index("idx_program_name", "name"),)
+
+
+class ProgramScoreRow(Base):
+    """Execution score for a program run within a pipeline."""
+
+    __tablename__ = "program_scores"
+
+    id = Column(String(36), primary_key=True, default=_uuid_str)
+    program_name = Column(String(255), nullable=False)
+    pipeline_id = Column(String(36), nullable=True)
+    step_id = Column(String(36), nullable=True)
+    outcome = Column(String(20), nullable=False)
+    parameters_used = Column(JSON, default=dict)
+    parameters_hash = Column(String(64), default="")
+    duration_seconds = Column(Integer, default=0)
+    output_size = Column(Integer, default=0)
+    error_message = Column(Text, default="")
+    recorded_at = Column(DateTime(timezone=True), default=_utcnow)
+
+    __table_args__ = (
+        Index("idx_score_program", "program_name"),
+        Index("idx_score_program_hash", "program_name", "parameters_hash"),
+        Index("idx_score_outcome", "program_name", "outcome"),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Engine / Session helpers
 # ---------------------------------------------------------------------------
