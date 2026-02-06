@@ -4,59 +4,85 @@
 
 AutoCut-Agent is an intelligent task orchestration system for executing Python programs. It supports multi-trigger execution (schedule, event, API, GUI, LLM), intelligent queue management with resource locking, and a web-based administration interface.
 
-**Tech stack:** Python 3.10+, FastAPI, LangChain, APScheduler, Watchdog, structlog, Pydantic, Redis (optional), SQLite/PostgreSQL, Docker
+**Tech stack:** Python 3.10+, FastAPI, SQLAlchemy 2.0, Pydantic, LangChain, APScheduler, Watchdog, structlog, Redis (optional), SQLite/PostgreSQL, Docker
 
-**License:** MIT
+**License:** MIT | **Version:** 0.1.0 (Bootstrap)
 
 ## Repository Structure
 
 ```
 autocut-agent/
-├── src/agent/              # Main source code
-│   ├── core/               # Core orchestrator, config loading (Pydantic models)
-│   │   ├── orchestrator.py # AgentOrchestrator - central coordination class
-│   │   └── config.py       # load_config(), AgentConfig Pydantic model
-│   ├── triggers/           # Trigger systems
-│   │   ├── scheduler.py    # APScheduler-based cron/interval triggers
-│   │   ├── file_watcher.py # Watchdog-based file system monitoring
-│   │   ├── api_trigger.py  # FastAPI REST trigger endpoints
-│   │   └── llm_trigger.py  # LangChain NLP command parsing
-│   ├── queue/              # Queue management
-│   │   ├── manager.py      # QueueManager + TaskDispatcher
-│   │   ├── fifo.py         # FIFO queue implementation
-│   │   ├── priority.py     # Priority queue with starvation prevention
-│   │   └── parallel.py     # Parallel queue with load balancing
-│   ├── resources/          # Resource management
-│   │   ├── manager.py      # ResourceManager with lock acquisition/release
-│   │   ├── gpu.py          # CUDA/PyTorch GPU detection, VRAM monitoring
-│   │   ├── cpu.py          # CPU core allocation, shared concurrency
-│   │   └── locks.py        # RedisLockManager (or local fallback)
-│   ├── executor/           # Program execution engine
-│   │   ├── runner.py       # ProgramExecutor - subprocess management
-│   │   ├── venv.py         # Virtual environment activation/isolation
-│   │   └── output.py       # Real-time log streaming, output collection
-│   ├── monitoring/         # Logging, metrics, alerting
-│   │   ├── system.py       # MonitoringSystem (structlog + Prometheus + AlertManager)
-│   │   ├── metrics.py      # PrometheusMetrics export
-│   │   └── alerts.py       # AlertManager (email, webhook, Slack, Discord)
-│   ├── api/                # REST API endpoints (FastAPI)
-│   │   ├── app.py          # FastAPI app creation, CORS, router includes
-│   │   ├── queues.py       # /api/v1/queues endpoints
-│   │   ├── tasks.py        # /api/v1/tasks endpoints
-│   │   └── status.py       # /api/v1/status, /health, /metrics endpoints
-│   └── gui/                # Web frontend (React, future)
-├── tests/                  # Test suite (pytest)
-├── docs/                   # Documentation
-│   ├── ARCHITECTURE.md     # System architecture and design
-│   ├── API.md              # Complete API documentation
-│   ├── CONFIGURATION.md    # Configuration options
-│   ├── DEPLOYMENT.md       # Production deployment guide
-│   └── DEVELOPMENT.md      # Contributing guidelines
-├── examples/               # Usage examples
-├── configs/                # Configuration templates (YAML)
-├── scripts/                # Setup/deployment scripts
-├── README.md               # Main project documentation
-└── AI-AGENTS-GUIDE.md      # Guide for AI coding assistants
+├── src/agent/                    # Main source code
+│   ├── core/                     # Core orchestrator, config, state
+│   │   ├── orchestrator.py       # AgentOrchestrator - central coordination
+│   │   ├── config.py             # load_config(), AgentConfig Pydantic model
+│   │   └── state.py              # State management
+│   ├── triggers/                 # Trigger systems
+│   │   ├── scheduler.py          # APScheduler cron/interval triggers
+│   │   ├── watcher.py            # Watchdog file system monitoring
+│   │   ├── api.py                # FastAPI REST trigger endpoints
+│   │   └── llm.py                # LangChain NLP command parsing
+│   ├── queue/                    # Queue management
+│   │   ├── manager.py            # QueueManager + TaskDispatcher
+│   │   ├── worker.py             # Worker implementation
+│   │   └── models.py             # Queue/Task data models
+│   ├── resources/                # Resource management
+│   │   ├── manager.py            # ResourceManager with acquire/release
+│   │   ├── gpu.py                # CUDA/PyTorch detection, VRAM monitoring
+│   │   └── locks.py              # RedisLockManager (or local fallback)
+│   ├── executor/                 # Program execution engine
+│   │   ├── runner.py             # ProgramExecutor - subprocess management
+│   │   ├── venv.py               # Virtual environment activation/isolation
+│   │   └── capture.py            # Real-time log streaming, output collection
+│   ├── monitoring/               # Logging, metrics, alerting
+│   │   ├── logger.py             # structlog structured JSON logging
+│   │   ├── metrics.py            # Prometheus metrics export
+│   │   └── alerts.py             # AlertManager (email, webhook, Slack, Discord)
+│   ├── api/                      # REST API (FastAPI)
+│   │   ├── main.py               # FastAPI app creation, CORS, router includes
+│   │   ├── auth.py               # Authentication (JWT, API keys)
+│   │   └── routes/               # API endpoint modules
+│   │       ├── queues.py         # /api/v1/queues endpoints
+│   │       ├── tasks.py          # /api/v1/tasks endpoints
+│   │       └── status.py         # /api/v1/status, /health, /metrics
+│   ├── gui/                      # Web frontend (React, future)
+│   └── cli.py                    # Command-line interface entry point
+├── tests/                        # Test suite (pytest)
+│   ├── unit/                     # Unit tests
+│   ├── integration/              # Integration tests
+│   └── e2e/                      # End-to-end tests
+├── docs/                         # Documentation
+│   └── ARCHITECTURE.md           # System architecture and design
+├── examples/                     # Usage examples
+│   ├── simple_task.py            # Basic task execution
+│   └── gpu_task.py               # GPU-locked task example
+├── configs/                      # Configuration templates
+│   ├── default.yaml              # Default/production configuration
+│   └── development.yaml          # Development configuration
+├── scripts/                      # Setup and deployment scripts
+│   ├── setup.sh                  # Linux/macOS setup
+│   ├── setup.ps1                 # Windows setup
+│   └── docker-entrypoint.sh      # Container entrypoint
+├── .vscode/                      # VSCode configuration
+│   ├── settings.json             # Editor settings, Python config
+│   ├── launch.json               # Debug configurations
+│   └── tasks.json                # Common dev tasks
+├── .github/
+│   └── copilot-instructions.md   # GitHub Copilot instructions
+├── pyproject.toml                # Poetry deps, project metadata, tool config
+├── requirements.txt              # Pip fallback dependencies
+├── Dockerfile                    # Multi-stage Docker build
+├── docker-compose.yml            # Full stack (agent + PostgreSQL + Redis)
+├── .env.template                 # Environment variables template
+├── .gitignore                    # Python project ignore patterns
+├── .cursorrules                  # Cursor AI rules
+├── .aider.conf.yml               # Aider configuration
+├── autocut-agent.code-workspace  # VSCode workspace file
+├── README.md                     # Project overview and quick start
+├── AI-AGENTS-GUIDE.md            # Comprehensive guide for AI assistants
+├── CONTRIBUTING.md               # Contribution guidelines
+├── specifications-v1.md          # Complete project specifications (30KB)
+└── LICENSE                       # MIT License
 ```
 
 ## Architecture
@@ -216,7 +242,7 @@ React-based: Dashboard, Queue Management, Task Monitor, Config Editor, Log Viewe
 
 ## Database Schema
 
-Four core tables (SQLite or PostgreSQL):
+Four core tables (SQLite or PostgreSQL via SQLAlchemy 2.0):
 
 - **tasks** - `id` (UUID PK), `queue_name`, `program_path`, `status`, `priority`, `created_at`, `started_at`, `completed_at`, `config` (JSON), `result` (JSON), `error`. Indexed on `(queue_name, status)` and `(status, created_at)`.
 - **queues** - `name` (PK), `type` (fifo/priority/parallel), `workers`, `priority`, `status`, `config` (JSON).
@@ -250,16 +276,43 @@ def load_config(path: str) -> AgentConfig:
     return AgentConfig(**data)  # Pydantic validates all fields
 ```
 
+**Config files:**
+- `configs/default.yaml` - Production defaults
+- `configs/development.yaml` - Dev mode (debug logging, auto-reload)
+- `.env.template` - Environment variable template (copy to `.env`)
+
 ## Key Entry Points
 
+- **CLI:** `src/agent/cli.py` - Command-line interface (`autocut-agent start ...`)
 - **Orchestrator:** `src/agent/core/orchestrator.py` - `AgentOrchestrator` class
-- **Config loading:** `src/agent/core/config.py` - `load_config()` function, `AgentConfig` Pydantic model
+- **Config:** `src/agent/core/config.py` - `load_config()`, `AgentConfig` Pydantic model
+- **State:** `src/agent/core/state.py` - State management
 - **Queue Manager:** `src/agent/queue/manager.py` - `QueueManager` + `TaskDispatcher`
-- **Resource Manager:** `src/agent/resources/manager.py` - `ResourceManager` + `RedisLockManager`
+- **Queue Models:** `src/agent/queue/models.py` - Task/Queue data models
+- **Workers:** `src/agent/queue/worker.py` - Worker implementation
+- **Resource Manager:** `src/agent/resources/manager.py` - `ResourceManager`
+- **Locks:** `src/agent/resources/locks.py` - `RedisLockManager`
 - **Executor:** `src/agent/executor/runner.py` - `ProgramExecutor`
-- **Monitoring:** `src/agent/monitoring/system.py` - `MonitoringSystem`
-- **REST API:** `src/agent/api/app.py` - FastAPI app with routers at `/api/v1/`
+- **Monitoring:** `src/agent/monitoring/logger.py` - structlog setup
+- **API App:** `src/agent/api/main.py` - FastAPI app with routers at `/api/v1/`
+- **API Auth:** `src/agent/api/auth.py` - JWT/API key authentication
+- **API Routes:** `src/agent/api/routes/` - Endpoint modules (queues, tasks, status)
 - **Web GUI:** `http://localhost:8080` when running
+
+## Implementation Phases
+
+Implementation should follow this priority order:
+
+| Phase | Focus | Key Files |
+|-------|-------|-----------|
+| 1 | **Core Foundation** | `core/config.py`, `core/state.py`, `core/orchestrator.py` |
+| 2 | **Queue System** | `queue/models.py`, `queue/manager.py`, `queue/worker.py` |
+| 3 | **Resource Management** | `resources/gpu.py`, `resources/locks.py`, `resources/manager.py` |
+| 4 | **Executor** | `executor/runner.py`, `executor/venv.py`, `executor/capture.py` |
+| 5 | **Triggers** | `triggers/scheduler.py`, `triggers/watcher.py`, `triggers/api.py` |
+| 6 | **Monitoring** | `monitoring/logger.py`, `monitoring/metrics.py`, `monitoring/alerts.py` |
+| 7 | **API** | `api/main.py`, `api/routes/*.py`, `api/auth.py` |
+| 8 | **GUI** | `gui/` (React frontend) |
 
 ## Deployment Models
 
@@ -267,7 +320,26 @@ def load_config(path: str) -> AgentConfig:
 
 **Distributed:** Nginx load balancer -> multiple API nodes -> multiple Agent nodes (each with own Orchestrator/Queues/Executors) -> PostgreSQL primary + Redis cluster. Requires Redis for distributed locking.
 
+**Docker Compose:** Full stack with agent + PostgreSQL + Redis via `docker-compose.yml`. Multi-stage `Dockerfile` with `scripts/docker-entrypoint.sh`.
+
 ## Development Commands
+
+### Setup
+
+```bash
+# Linux/macOS
+bash scripts/setup.sh
+
+# Windows
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
+
+# Activate venv
+source .venv/bin/activate       # Linux/macOS
+.venv\Scripts\activate          # Windows
+
+# Copy env template
+cp .env.template .env
+```
 
 ### Package Management
 
@@ -285,12 +357,18 @@ autocut-agent start                                # default config
 autocut-agent start --config configs/default.yaml  # custom config
 autocut-agent start --dev                          # dev mode (auto-reload)
 autocut-agent start --log-level DEBUG              # verbose logging
+
+# Or run API directly with uvicorn
+uvicorn agent.api.main:app --reload --host 0.0.0.0 --port 8080
 ```
 
 ### Testing
 
 ```bash
 pytest                                   # run all tests
+pytest tests/unit/                       # unit tests only
+pytest tests/integration/                # integration tests only
+pytest tests/e2e/                        # end-to-end tests only
 pytest tests/unit/test_queue_manager.py  # specific test file
 pytest -v -s                             # verbose with stdout
 pytest --lf                              # rerun failed tests
@@ -311,8 +389,8 @@ pre-commit install  # set up pre-commit hooks
 
 ```bash
 docker build -t autocut-agent .
-docker-compose up -d       # start all services
-docker-compose logs -f     # view logs
+docker-compose up -d       # start all services (agent + PostgreSQL + Redis)
+docker-compose logs -f agent  # view agent logs
 docker-compose down        # stop services
 ```
 
@@ -322,12 +400,14 @@ docker-compose down        # stop services
 - **Linter:** Ruff
 - **Type checker:** mypy
 - **Test framework:** pytest with pytest-cov
+- **ORM:** SQLAlchemy 2.0 with async support
+- **Validation:** Pydantic `BaseModel` with validators for all config and API models
+- **Logging:** structlog with structured JSON output and context binding
 - **Pre-commit hooks:** configured via pre-commit
 - **Python version:** 3.10+ (use modern syntax: `match/case`, `X | Y` union types, etc.)
 - **Async:** The orchestrator, executor, resource manager, and API all use `async/await`
-- **Config validation:** All configuration uses Pydantic `BaseModel` with validators
-- **Logging:** structlog with structured JSON output and context binding
 - **Imports:** Use `from agent.core.orchestrator import AgentOrchestrator` style
+- **Tests:** Organize into `tests/unit/`, `tests/integration/`, `tests/e2e/`
 
 ## Security
 
@@ -338,6 +418,8 @@ docker-compose down        # stop services
 - **Audit:** All operations logged with correlation IDs
 
 ## Environment Variables
+
+Defined in `.env.template`, copy to `.env` for local use:
 
 | Variable | Purpose |
 |----------|---------|
@@ -353,13 +435,30 @@ docker-compose down        # stop services
 - Run `pytest`, `ruff check .`, `black .`, and `mypy src/` before committing
 - Pre-commit hooks enforce code quality checks automatically
 
+## Key Documentation References
+
+| Document | Purpose | Size |
+|----------|---------|------|
+| `specifications-v1.md` | Complete project specs, requirements, use cases, phases | 30KB |
+| `AI-AGENTS-GUIDE.md` | AI assistant patterns, best practices, testing strategies | 30KB |
+| `docs/ARCHITECTURE.md` | System architecture, data flow, DB schema, deployment | 17KB |
+| `README.md` | Overview, quick start, installation, API examples | 12KB |
+| `CONTRIBUTING.md` | Contribution guidelines, code style, PR process | 8KB |
+| `.github/copilot-instructions.md` | GitHub Copilot-specific instructions | 9KB |
+| `.cursorrules` | Cursor AI rules | 3KB |
+| `.aider.conf.yml` | Aider configuration | - |
+
 ## Important Notes
 
-- This project is in early development; the README and architecture docs describe the target design
+- This project is in bootstrap phase; source modules are not yet implemented
+- Implementation should follow the phased approach (Core -> Queues -> Resources -> Executor -> Triggers -> Monitoring -> API -> GUI)
 - GPU resources use exclusive locking - tasks requiring the same GPU are serialized via Redis/local locks
 - Redis is optional; without it, resource locking is process-local only (single-node mode)
 - The LLM integration supports both OpenAI and Anthropic providers via LangChain
 - Configuration supports environment variable substitution for secrets
 - Queue names must be unique (enforced by Pydantic validator)
 - All network I/O is async; use `async def` for new API endpoints and service methods
-- Database tables use JSON columns for flexible config/result storage
+- Database uses SQLAlchemy 2.0 async; tables use JSON columns for flexible config/result storage
+- The API module uses a `routes/` subdirectory for endpoint organization
+- Tests are split into unit, integration, and e2e directories
+- Cross-platform support: setup scripts for Linux/macOS (`setup.sh`) and Windows (`setup.ps1`)
