@@ -161,6 +161,40 @@ def _build_chat_model(config: LLMConfig) -> Any:
             kwargs["api_key"] = config.api_key
         return ChatAnthropic(**kwargs)
 
+    if config.provider == "gemini":
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI  # type: ignore[import-untyped]
+        except ImportError as exc:
+            raise ImportError(
+                "langchain-google-genai is required for the Gemini provider. "
+                "Install it with: pip install langchain-google-genai"
+            ) from exc
+
+        kwargs = {"model": config.model, "temperature": config.temperature}
+        if config.api_key:
+            kwargs["google_api_key"] = config.api_key
+        return ChatGoogleGenerativeAI(**kwargs)
+
+    if config.provider == "lmstudio":
+        try:
+            from langchain_openai import ChatOpenAI  # type: ignore[import-untyped]
+        except ImportError as exc:
+            raise ImportError(
+                "langchain-openai is required for the LMStudio provider. "
+                "Install it with: pip install langchain-openai"
+            ) from exc
+
+        kwargs = {
+            "model": config.model,
+            "temperature": config.temperature,
+            "base_url": config.base_url or "http://localhost:1234/v1",
+        }
+        if config.api_key:
+            kwargs["api_key"] = config.api_key
+        else:
+            kwargs["api_key"] = "lm-studio"  # LMStudio doesn't require a real key
+        return ChatOpenAI(**kwargs)
+
     raise ValueError(f"Unsupported LLM provider: {config.provider!r}")
 
 

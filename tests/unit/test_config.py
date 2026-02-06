@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from agent.core.config import AgentConfig, load_config
+from agent.core.config import AgentConfig, LLMConfig, load_config
 
 
 def _write_config(data: dict, path: Path) -> Path:
@@ -64,6 +64,15 @@ class TestAgentConfig:
 
         with pytest.raises(Exception):
             AgentConfig(llm={"provider": "invalid"})
+
+    def test_llm_gemini_provider(self) -> None:
+        config = LLMConfig(provider="gemini", model="gemini-pro")
+        assert config.provider == "gemini"
+
+    def test_llm_lmstudio_provider(self) -> None:
+        config = LLMConfig(provider="lmstudio", model="local-model", base_url="http://localhost:1234/v1")
+        assert config.provider == "lmstudio"
+        assert config.base_url == "http://localhost:1234/v1"
 
 
 class TestLoadConfig:

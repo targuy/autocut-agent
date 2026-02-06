@@ -21,7 +21,7 @@ from typing import Any
 
 import structlog
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.core.database import ProgramScoreRow
@@ -507,3 +507,14 @@ class ScoringManager:
                 advisories[name] = program_advisories
 
         return advisories
+
+    async def clear_scores(self, program_name: str) -> int:
+        """Delete all scores for a program. Returns count deleted."""
+        async with self._session_factory() as session:
+            result = await session.execute(
+                delete(ProgramScoreRow).where(
+                    ProgramScoreRow.program_name == program_name
+                )
+            )
+            await session.commit()
+            return result.rowcount

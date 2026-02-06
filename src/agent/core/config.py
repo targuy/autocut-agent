@@ -150,13 +150,16 @@ class LLMConfig(BaseModel):
     provider: str = "openai"
     model: str = "gpt-4"
     api_key: str | None = None
+    base_url: str | None = None
     temperature: float = Field(default=0.3, ge=0.0, le=2.0)
 
     @field_validator("provider")
     @classmethod
     def validate_provider(cls, v: str) -> str:
-        if v not in {"openai", "anthropic"}:
-            raise ValueError("provider must be 'openai' or 'anthropic'")
+        if v not in {"openai", "anthropic", "gemini", "lmstudio"}:
+            raise ValueError(
+                "provider must be 'openai', 'anthropic', 'gemini', or 'lmstudio'"
+            )
         return v
 
 

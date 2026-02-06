@@ -214,6 +214,31 @@ class ProgramScoreRow(Base):
     )
 
 
+class MediaFileRow(Base):
+    """Tracked media/file in the storage system."""
+    __tablename__ = "media_files"
+
+    id = Column(String(36), primary_key=True, default=_uuid_str)
+    filename = Column(String(512), nullable=False)
+    original_path = Column(String(1024), nullable=False)
+    storage_path = Column(String(1024), nullable=False)
+    file_size = Column(Integer, default=0)
+    mime_type = Column(String(128), default="")
+    file_hash = Column(String(64), default="")
+    category = Column(String(20), nullable=False, default="artifact")
+    pipeline_id = Column(String(36), nullable=True)
+    step_id = Column(String(36), nullable=True)
+    tags = Column(JSON, default=list)
+    file_metadata = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), default=_utcnow)
+
+    __table_args__ = (
+        Index("idx_media_pipeline", "pipeline_id"),
+        Index("idx_media_category", "category"),
+        Index("idx_media_filename", "filename"),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Engine / Session helpers
 # ---------------------------------------------------------------------------
